@@ -5,6 +5,9 @@ class Transformer {
   adjustLength = 0;
   buffer = '';
   chunkLengths = [];
+  returnBytes = false;
+  textDecoder;
+  textEncoder;
   
   constructor(searchReplace){
     this.searchReplace = searchReplace ?? [];
@@ -56,13 +59,47 @@ class Transformer {
     return content;
   }
   
+  isByteArray(content){
+    return content instanceof ArrayBuffer || content instanceof Uint8Array || content instanceof Int8Array;
+  }
+  
+  decode(byteArray){
+    if(!this.textDecoder){
+      this.textDecoder = new TextDecoder();
+    }
+    
+    return this.textDecoder.decode(byteArray);
+  }
+  
+  encode(text){
+    if(!this.textEncoder){
+      this.textEncoder = new TextEncoder();
+    }
+    
+    return this.textEncoder.encode(text);
+  }
+  
+  enqueue(controller, content){
+    if(this.returnBytes){
+      controller.enqueue(this.encode(content));
+    } else {
+      controller.enqueue(content);
+    }
+  }
+  
   transform(chunk, controller){
+    this.returnBytes = this.isByteArray(chunk);
+    
+    if(this.returnBytes){
+      chunk = this.decode(chunk);
+    }
+    
     if(!this.shouldDoReplacements || typeof chunk !== 'string'){
       // When no search/replace values were provided, enqueue the chunk without change.
-      controller.enqueue(chunk);
+      this.enqueue(controller, chunk);
     } else if(this.overflowLength === 0){
       // If the overflow length is zero, the search term must be a single character. Do the replacement without buffering.
-      controller.enqueue(this.replace(chunk));
+      this.enqueue(controller, this.replace(chunk));
     } else {
       // All chunk lengths go into this array to keep track of them.
       this.chunkLengths.push(chunk.length);
@@ -104,7 +141,7 @@ class Transformer {
           this.adjustLength = 0;
           
           // Enqueue from the buffer.
-          controller.enqueue(this.buffer.slice(0, pendingLength));
+          this.enqueue(controller, this.buffer.slice(0, pendingLength));
           
           // The new buffer is the leftover part that was not enqueued, plus any remainder from the current chunk.
           this.buffer = this.buffer.slice(pendingLength) + remainder;
@@ -115,7 +152,7 @@ class Transformer {
   
   flush(controller){
     if(this.buffer.length){
-      controller.enqueue(this.replace(this.buffer));
+      this.enqueue(controller, this.replace(this.buffer));
       this.buffer = '';
       this.chunkLengths.length = 0;
     }
