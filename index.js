@@ -94,7 +94,7 @@ class Transformer {
       chunk = this.decode(chunk);
     }
     
-    if(!this.shouldDoReplacements || typeof chunk !== 'string'){
+    if(!this.shouldDoReplacements){
       // When no search/replace values were provided, enqueue the chunk without change.
       this.enqueue(controller, chunk);
     } else if(this.overflowLength === 0){

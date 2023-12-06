@@ -1,6 +1,6 @@
 {
   "name": "stream-search-replace",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Search and replace in a readable stream.",
   "main": "index.js",
   "scripts": {
