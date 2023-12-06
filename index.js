@@ -1,3 +1,4 @@
+// This is the transformer used inside of the TransformStream. It is not accessed directly.
 class Transformer {
   searchReplace = [];
   overflowLength = 0;
@@ -123,12 +124,19 @@ class Transformer {
   }
 }
 
-export default async function streamSearchReplace(stream, searchReplace = []){
-  if(!searchReplace || !searchReplace.length) return stream;
+// The StreamSearchReplace class can be used in a pipe chain like a TransformStream.
+// The only difference is when you construct it. The searchReplace arg should be
+// an array of objects, each having a "search" property and a "replace" property.
+export default class StreamSearchReplace {
+  transformer;
+  transformStream;
+  readable;
+  writable;
   
-  const transformer = new Transformer(searchReplace);
-  
-  const transformStream = new TransformStream(transformer);
-  
-  return stream.pipeThrough(transformStream);
+  constructor(searchReplace = []){
+    this.transformer = new Transformer(searchReplace);
+    this.transformStream = new TransformStream(this.transformer);
+    this.readable = this.transformStream.readable;
+    this.writable = this.transformStream.writable;
+  }
 }
